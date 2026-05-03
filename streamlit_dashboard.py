@@ -3,6 +3,21 @@ Streamlit Dashboard for CRM Sales Forecast Pipeline
 Displays forecast results, charts, and performance metrics
 """
 
+import sys
+import os
+
+# --- Auto-detect venv Python and re-launch if needed ---
+_VENV_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "venv")
+_VENV_PYTHON = os.path.join(_VENV_DIR, "Scripts", "python.exe") if os.name == "nt" else os.path.join(_VENV_DIR, "bin", "python")
+if os.path.isfile(_VENV_PYTHON) and os.path.abspath(sys.executable) != os.path.abspath(_VENV_PYTHON):
+    os.execv(_VENV_PYTHON, [_VENV_PYTHON] + sys.argv)
+
+# --- Fix Windows console encoding for Unicode characters ---
+if sys.stdout and hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+if sys.stderr and hasattr(sys.stderr, 'reconfigure'):
+    sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+
 import streamlit as st
 import pandas as pd
 import numpy as np
