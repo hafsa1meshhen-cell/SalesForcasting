@@ -4,8 +4,9 @@ An optimized time-series forecasting system using Prophet (Bayesian) with advanc
 
 ## 📊 Performance Metrics
 
-- **Holdout RMSE**: **1.15%** of mean sales (Excellent accuracy)
-- **MAPE**: **0.97%** (Very precise)
+- **Holdout RMSE**: **16,130.93** (**3.53%** of mean sales, Excellent accuracy)
+- **MAPE**: **2.44%** (Very precise)
+- **Best CV RMSE**: **58,532** (**12.82%** of mean sales)
 - **Model Status**: 🎯 **Production Ready**
 - **Interpretation**: Ideal for CRM forecasting & target-setting
 
@@ -13,10 +14,10 @@ An optimized time-series forecasting system using Prophet (Bayesian) with advanc
 
 ### 1. **Advanced Forecasting** (`forecast_backup.py`)
 - **22 hyperparameter combinations** grid search
-- **9 engineered features** (lags, rolling averages, interactions)
-- **Cross-validation based selection** on log RMSE
+- **5 engineered regressors** (focused set to reduce overfitting)
+- **Cross-validation based selection** on original-scale RMSE
 - **Functional uplift rule** for target-setting based on close_rate & territory_potential
-- **47 months synthetic data** with optimized noise (±8-12%)
+- **51 months synthetic data** with optimized noise
 
 ### 2. **Interactive Dashboard** (`streamlit_dashboard.py`)
 - 📊 Real-time forecast visualization
@@ -57,7 +58,7 @@ python forecast_backup.py
 ```
 **Output Files:**
 - `prophet_sales_forecast_results.csv` - 12-month forecast
-- `prophet_historical_performance.csv` - 47-month historical performance
+- `prophet_historical_performance.csv` - 51-month historical performance
 - `prophet_optimized_forecast.png` - Visualization
 - `territory_single_prophet_ready.csv` - Synthetic training data
 
@@ -77,7 +78,7 @@ SalesForcasting/
 ├── requirements.txt                # Python dependencies
 ├── README.md                       # This file
 ├── prophet_sales_forecast_results.csv       # Generated forecast (12 months)
-├── prophet_historical_performance.csv       # Generated historical data (47 months)
+├── prophet_historical_performance.csv       # Generated historical data (51 months)
 ├── prophet_optimized_forecast.png           # Generated visualization
 └── territory_single_prophet_ready.csv       # Synthetic training data
 ```
@@ -93,16 +94,12 @@ SalesForcasting/
 - n_changepoints: [20, 25, 30, 35, 40, 50]
 ```
 
-### Feature Engineering (9 Regressors)
+### Feature Engineering (5 Regressors)
 1. `open_deals` - Number of open opportunities
-2. `avg_deal_size` - Average transaction value
-3. `territory_potential` - Market size indicator
-4. `close_rate` - Sales conversion rate
-5. `past_sales_lag1` - Previous month sales
-6. `past_sales_lag2` - 2-month lagged sales
-7. `past_sales_rolling3` - 3-month rolling average
-8. `deals_x_close` - Interaction: deals × close_rate
-9. `potential_x_close` - Interaction: potential × close_rate
+2. `territory_potential` - Market size indicator
+3. `close_rate` - Sales conversion rate
+4. `past_sales_lag1` - Previous month sales
+5. `past_sales_rolling3` - 3-month rolling average
 
 ### Target Setting Rule
 ```
@@ -117,7 +114,7 @@ Where: uplift = 1.05 + 0.40×close_rate + 0.25×territory_potential
 |-----|---------|
 | **Overview** | Key metrics, model status, recommendations |
 | **Forecast** | 12-month projection with confidence bands |
-| **Historical** | 47-month actual vs predicted analysis |
+| **Historical** | 51-month actual vs predicted analysis |
 | **Data** | Interactive data explorer with downloads |
 | **Settings** | Model config, performance summary, resources |
 
@@ -135,16 +132,16 @@ MISTRAL_API_KEY = "your_key_here"        # Add your API key
 ## 📈 Data Specifications
 
 ### Synthetic Data Generation
-- **Time Period**: 47 months (2022-01 to 2025-11)
+- **Time Period**: 51 months (2022-01 to 2026-03)
 - **Trend**: +5% annual growth
 - **Seasonality**: 8% amplitude with monthly cycles
 - **Noise**: ±8-12% random variation
-- **Regressors**: 9 features with realistic correlations
+- **Regressors**: 5 focused features
 
 ### Train/Test Split
-- **Training**: 44 months
+- **Training**: 48 months
 - **Holdout Test**: 3 months
-- **Cross-Validation**: 180-day horizon, 90-day period
+- **Cross-Validation**: 90-day horizon, 30-day period
 
 ## 🎯 Performance Interpretation
 
@@ -240,9 +237,9 @@ MIT License - Feel free to use, modify, and distribute.
 ### From Original → Optimized
 | Aspect | Original | Optimized |
 |--------|----------|-----------|
-| RMSE | 15.40% | **1.15%** ✅ |
+| RMSE | 15.40% | **3.53%** ✅ |
 | Hyperparameter Grid | 8 combinations | **22 combinations** ✅ |
-| Feature Count | Basic | **9 engineered features** ✅ |
+| Feature Count | Basic | **5 focused regressors** ✅ |
 | Holdout Period | 6 months | **3 months** (more training) ✅ |
 | Data Quality | ±15-20% noise | **±8-12% noise** ✅ |
 | Dashboard | None | **Full Streamlit Dashboard** ✅ |
@@ -250,5 +247,5 @@ MIT License - Feel free to use, modify, and distribute.
 
 ---
 
-**Last Updated**: December 16, 2025  
+**Last Updated**: May 3, 2026  
 **Status**: 🎯 Production Ready
