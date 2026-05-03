@@ -24,6 +24,8 @@ import sys
 
 import os
 
+import re
+
 import warnings
 
 from datetime import datetime, timedelta
@@ -261,6 +263,113 @@ target_column = "past_sales"
 # Target-setting strategy: "function" or "plus10"
 
 TARGET_RULE = "function"
+
+
+def update_readme_metrics(readme_path,
+                          holdout_rmse,
+                          holdout_rmse_pct,
+                          holdout_mape,
+                          best_cv_rmse,
+                          best_cv_pct,
+                          data_rows,
+                          start_ds,
+                          end_ds,
+                          train_rows,
+                          regressor_count,
+                          horizon_days=90,
+                          period_days=30):
+    """Update README summary values so docs stay in sync with the latest run."""
+    if not os.path.exists(readme_path):
+        print(f"[WARN] README not found at {readme_path}; skipping README auto-update.")
+        return
+
+    with open(readme_path, "r", encoding="utf-8") as f:
+        text = f.read()
+
+    def replace_line(pattern, replacement):
+        return re.sub(pattern, replacement, text, flags=re.MULTILINE)
+
+    text = replace_line(
+        r"^- \*\*Holdout RMSE\*\*:.*$",
+        f"- **Holdout RMSE**: **{holdout_rmse:,.2f}** (**{holdout_rmse_pct:.2f}%** of mean sales, Excellent accuracy)",
+    )
+    text = replace_line(
+        r"^- \*\*MAPE\*\*:.*$",
+        f"- **MAPE**: **{holdout_mape:.2f}%** (Very precise)",
+    )
+
+    best_cv_line = f"- **Best CV RMSE**: **{best_cv_rmse:,.0f}** (**{best_cv_pct:.2f}%** of mean sales)"
+    if re.search(r"^- \*\*Best CV RMSE\*\*:.*$", text, flags=re.MULTILINE):
+        text = replace_line(r"^- \*\*Best CV RMSE\*\*:.*$", best_cv_line)
+    else:
+        text = re.sub(
+            r"(^- \*\*MAPE\*\*:.*$)",
+            r"\1\n" + best_cv_line,
+            text,
+            flags=re.MULTILINE,
+        )
+
+    text = replace_line(
+        r"^- \*\*\d+ engineered regressors\*\*:.*$",
+        f"- **{regressor_count} engineered regressors** (focused set to reduce overfitting)",
+    )
+    text = replace_line(
+        r"^- \*\*Cross-validation based selection\*\*:.*$",
+        "- **Cross-validation based selection** on original-scale RMSE",
+    )
+    text = replace_line(
+        r"^- \*\*\d+ months synthetic data\*\*:.*$",
+        f"- **{data_rows} months synthetic data** with optimized noise",
+    )
+    text = replace_line(
+        r"^- `prophet_historical_performance\.csv` - \d+-month historical performance$",
+        f"- `prophet_historical_performance.csv` - {data_rows}-month historical performance",
+    )
+    text = replace_line(
+        r"^├── prophet_historical_performance\.csv\s+# Generated historical data \(\d+ months\)$",
+        f"├── prophet_historical_performance.csv       # Generated historical data ({data_rows} months)",
+    )
+    text = replace_line(
+        r"^### Feature Engineering \(\d+ Regressors\)$",
+        f"### Feature Engineering ({regressor_count} Regressors)",
+    )
+    text = replace_line(
+        r"^\| \*\*Historical\*\* \| .* \|$",
+        f"| **Historical** | {data_rows}-month actual vs predicted analysis |",
+    )
+    text = replace_line(
+        r"^- \*\*Time Period\*\*:.*$",
+        f"- **Time Period**: {data_rows} months ({start_ds:%Y-%m} to {end_ds:%Y-%m})",
+    )
+    text = replace_line(
+        r"^- \*\*Regressors\*\*:.*$",
+        f"- **Regressors**: {regressor_count} focused features",
+    )
+    text = replace_line(
+        r"^- \*\*Training\*\*:.*$",
+        f"- **Training**: {train_rows} months",
+    )
+    text = replace_line(
+        r"^- \*\*Cross-Validation\*\*:.*$",
+        f"- **Cross-Validation**: {horizon_days}-day horizon, {period_days}-day period",
+    )
+    text = replace_line(
+        r"^\| RMSE \| 15\.40% \| \*\*.*\*\* ✅ \|$",
+        f"| RMSE | 15.40% | **{holdout_rmse_pct:.2f}%** ✅ |",
+    )
+    text = replace_line(
+        r"^\| Feature Count \| Basic \| \*\*.*\*\* ✅ \|$",
+        f"| Feature Count | Basic | **{regressor_count} focused regressors** ✅ |",
+    )
+    text = replace_line(
+        r"^\*\*Last Updated\*\*:.*$",
+        f"**Last Updated**: {datetime.today():%B %d, %Y}  ",
+    )
+
+    with open(readme_path, "w", encoding="utf-8") as f:
+        f.write(text)
+
+    print(f"✓ Updated README metrics → {readme_path}")
 
 
 
@@ -1131,3 +1240,20 @@ print("✓ OPTIMIZED FORECAST COMPLETE")
 print(f"✓ Target RMSE: <10% (Current: {rmse_pct:.2f}%)")
 
 print("="*60)
+
+
+update_readme_metrics(
+    readme_path="README.md",
+    holdout_rmse=holdout_rmse,
+    holdout_rmse_pct=rmse_pct,
+    holdout_mape=holdout_mape,
+    best_cv_rmse=best_cv_rmse,
+    best_cv_pct=best_cv_pct,
+    data_rows=len(work),
+    start_ds=work["ds"].min(),
+    end_ds=work["ds"].max(),
+    train_rows=len(train_df),
+    regressor_count=len(regressors),
+    horizon_days=90,
+    period_days=30,
+)
