@@ -1,4 +1,5 @@
 import io
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -12,6 +13,7 @@ BASE_DIR = Path(__file__).resolve().parent
 FORECAST_SCRIPT = BASE_DIR / "forecast_backup.py"
 HISTORICAL_CSV = BASE_DIR / "prophet_historical_performance.csv"
 FORECAST_CSV = BASE_DIR / "prophet_sales_forecast_results.csv"
+GENERATED_DATASET_CSV = BASE_DIR / "territory_single_prophet_ready.csv"
 README_PATH = BASE_DIR / "README.md"
 
 
@@ -20,11 +22,80 @@ st.set_page_config(page_title="CRM Sales Forecast & Target Dashboard", layout="w
 st.markdown(
     """
     <style>
-    .app-card {
-        border: 1px solid #d9e3f0;
+    :root {
+        --ink: #1e293b;
+        --ocean: #0f766e;
+        --sunset: #ef4444;
+        --sky: #0ea5e9;
+        --sand: #fff7ed;
+    }
+
+    .stApp {
+        background:
+            radial-gradient(circle at 15% 15%, rgba(14, 165, 233, 0.2) 0%, rgba(14, 165, 233, 0) 40%),
+            radial-gradient(circle at 85% 10%, rgba(239, 68, 68, 0.2) 0%, rgba(239, 68, 68, 0) 35%),
+            linear-gradient(145deg, #f8fafc 0%, #eef6ff 52%, #fff7ed 100%);
+        color: var(--ink);
+    }
+
+    .main .block-container {
+        padding-top: 2.2rem;
+        padding-bottom: 2rem;
+        background: rgba(255, 255, 255, 0.62);
+        border: 1px solid rgba(14, 165, 233, 0.18);
+        border-radius: 20px;
+        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+        backdrop-filter: blur(6px);
+    }
+
+    h1, h2, h3 {
+        color: #0b3c5d;
+        letter-spacing: 0.02em;
+    }
+
+    [data-testid="stMetric"] {
+        background: #ffffff;
+        border: 1px solid rgba(14, 165, 233, 0.2);
         border-radius: 14px;
-        padding: 18px;
-        background: #f8fbff;
+        padding: 8px 12px;
+        box-shadow: 0 8px 20px rgba(14, 165, 233, 0.1);
+    }
+
+    .stButton > button {
+        background: linear-gradient(90deg, var(--sunset), #f97316);
+        color: #ffffff;
+        border: none;
+        border-radius: 999px;
+        padding: 0.45rem 1.35rem;
+        font-weight: 700;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        box-shadow: 0 8px 18px rgba(239, 68, 68, 0.25);
+    }
+
+    .stButton > button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 12px 24px rgba(239, 68, 68, 0.32);
+    }
+
+    [data-testid="stDownloadButton"] button {
+        background: linear-gradient(90deg, var(--ocean), var(--sky));
+        color: #ffffff;
+        border: none;
+        border-radius: 12px;
+        font-weight: 700;
+        box-shadow: 0 8px 20px rgba(15, 118, 110, 0.24);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    [data-testid="stDownloadButton"] button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 12px 24px rgba(15, 118, 110, 0.32);
+    }
+
+    [data-testid="stExpander"] {
+        border: 1px solid rgba(14, 165, 233, 0.25);
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.75);
     }
     </style>
     """,
@@ -151,6 +222,30 @@ def read_readme() -> str:
     return README_PATH.read_text(encoding="utf-8", errors="replace")
 
 
+def load_holdout_metrics_from_readme() -> tuple[float, float, float]:
+    text = read_readme()
+    if not text:
+        return float("nan"), float("nan"), float("nan")
+
+    rmse = float("nan")
+    rmse_pct = float("nan")
+    mape = float("nan")
+
+    rmse_match = re.search(
+        r"\*\*Holdout RMSE\*\*:\s*\*\*([\d,]+(?:\.\d+)?)\*\*\s*\(\*\*([\d.]+)%\*\*",
+        text,
+    )
+    if rmse_match:
+        rmse = float(rmse_match.group(1).replace(",", ""))
+        rmse_pct = float(rmse_match.group(2))
+
+    mape_match = re.search(r"\*\*MAPE\*\*:\s*\*\*([\d.]+)%\*\*", text)
+    if mape_match:
+        mape = float(mape_match.group(1))
+
+    return rmse, rmse_pct, mape
+
+
 if "last_run_ok" not in st.session_state:
     st.session_state.last_run_ok = False
 if "last_run_log" not in st.session_state:
@@ -160,11 +255,9 @@ if "show_readme" not in st.session_state:
 
 
 st.title("CRM Sales Forecast & Target Dashboard")
-st.caption("Clean Streamlit dashboard for running forecast, viewing RMSE and charts, and downloading CSV files.")
+st.markdown("**Dynamic dashboard for running forecast, viewing RMSE and charts, and downloading CSV files**")
 
-st.markdown('<div class="app-card">', unsafe_allow_html=True)
-
-run_clicked = st.button("Run Forecast", type="primary", use_container_width=True)
+run_clicked = st.button("Run Forecast", type="primary")
 if run_clicked:
     with st.spinner("Running forecast script..."):
         ok, log = run_forecast_script()
@@ -194,16 +287,22 @@ hist_df, forecast_df = load_results()
 if hist_df is None and forecast_df is None:
     st.info("No result files found yet. Click 'Run Forecast' to generate outputs.")
 else:
-    st.subheader("KPI")
+    st.subheader("KPI metrics")
     metric_col1, metric_col2, metric_col3 = st.columns(3)
 
-    rmse = float("nan")
-    rmse_pct = float("nan")
-    mape = float("nan")
+    holdout_rmse, holdout_rmse_pct, holdout_mape = load_holdout_metrics_from_readme()
+
+    rmse = holdout_rmse
+    rmse_pct = holdout_rmse_pct
+    mape = holdout_mape
+
     if hist_df is not None:
-        rmse = calculate_rmse(hist_df)
-        rmse_pct = calculate_rmse_pct(hist_df, rmse)
-        mape = calculate_mape(hist_df)
+        if not np.isfinite(rmse):
+            rmse = calculate_rmse(hist_df)
+        if not np.isfinite(rmse_pct):
+            rmse_pct = calculate_rmse_pct(hist_df, rmse)
+        if not np.isfinite(mape):
+            mape = calculate_mape(hist_df)
 
     with metric_col1:
         st.metric("RMSE", f"{rmse:,.2f}" if np.isfinite(rmse) else "N/A")
@@ -227,7 +326,7 @@ else:
             st.warning("Forecast results file not found.")
 
     st.subheader("Download CSV")
-    dl1, dl2 = st.columns(2)
+    dl1, dl2, dl3 = st.columns(3)
     with dl1:
         if forecast_df is not None:
             st.download_button(
@@ -246,5 +345,13 @@ else:
                 mime="text/csv",
                 use_container_width=True,
             )
+    with dl3:
+        if GENERATED_DATASET_CSV.exists():
+            st.download_button(
+                label="Download generated dataset",
+                data=GENERATED_DATASET_CSV.read_bytes(),
+                file_name="territory_single_prophet_ready.csv",
+                mime="text/csv",
+                use_container_width=True,
+            )
 
-st.markdown("</div>", unsafe_allow_html=True)

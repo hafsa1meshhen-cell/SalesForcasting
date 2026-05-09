@@ -33,6 +33,17 @@ from datetime import datetime, timedelta
 import json
 
 
+def configure_console_output() -> None:
+    """Prevent UnicodeEncodeError on Windows terminals (e.g., cp1252)."""
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(errors="replace")
+    if hasattr(sys.stderr, "reconfigure"):
+        sys.stderr.reconfigure(errors="replace")
+
+
+configure_console_output()
+
+
 
 # ============================================================
 
@@ -423,7 +434,7 @@ def update_readme_metrics(readme_path,
     with open(readme_path, "w", encoding="utf-8") as f:
         f.write(text)
 
-    print(f"✓ Updated README metrics → {readme_path}")
+    print(f"[OK] Updated README metrics -> {readme_path}")
 
 
 
@@ -535,7 +546,7 @@ if True:
 
     df_gen.to_csv(CSV_PATH, index=False)
 
-    print(f"✓ Created {len(df_gen)} months of optimized synthetic data → {CSV_PATH}")
+    print(f"[OK] Created {len(df_gen)} months of optimized synthetic data -> {CSV_PATH}")
 
     df = df_gen.copy()
 
@@ -607,7 +618,7 @@ work = df[["ds", "y", "y_raw"] + regressors].copy()
 
 print(f"\n=== DATA READY (Forecasting ACTUAL sales — original scale) ===")
 
-print(f"Rows: {len(work)}, Date range: {work['ds'].min()} → {work['ds'].max()}")
+print(f"Rows: {len(work)}, Date range: {work['ds'].min()} -> {work['ds'].max()}")
 
 print(f"Mean sales: {work['y_raw'].mean():,.0f}, Std: {work['y_raw'].std():,.0f}")
 
@@ -813,7 +824,7 @@ rmse_base_cv = quick_cv_rmse(m_base, horizon_days=90, period_days=30)
 
 mean_sales = float(work["y_raw"].mean())
 
-print(f"✓ Baseline: In-sample RMSE = {rmse_base_orig:,.0f} ({rmse_base_orig/mean_sales*100:.2f}%)")
+print(f"[OK] Baseline: In-sample RMSE = {rmse_base_orig:,.0f} ({rmse_base_orig/mean_sales*100:.2f}%)")
 
 print(f"            CV RMSE = {rmse_base_cv:,.0f} ({rmse_base_cv/mean_sales*100:.2f}%)\n")
 
@@ -869,7 +880,7 @@ for i, p in enumerate(grid, 1):
 
         is_pct = rmse_try_orig / mean_sales * 100
 
-        print(f"  → CV RMSE: {cv_rmse_try:,.0f} ({cv_pct:.2f}%), In-sample: {rmse_try_orig:,.0f} ({is_pct:.2f}%)")
+        print(f"  -> CV RMSE: {cv_rmse_try:,.0f} ({cv_pct:.2f}%), In-sample: {rmse_try_orig:,.0f} ({is_pct:.2f}%)")
 
         
 
@@ -883,13 +894,13 @@ for i, p in enumerate(grid, 1):
 
             best_rmse_orig = rmse_try_orig
 
-            print(f"  ✓ NEW BEST (CV RMSE: {cv_rmse_try:,.0f}, {cv_pct:.2f}%)")
+            print(f"  [OK] NEW BEST (CV RMSE: {cv_rmse_try:,.0f}, {cv_pct:.2f}%)")
 
     
 
     except Exception as e:
 
-        print(f"  ✗ FAILED: {e}")
+        print(f"  [FAILED]: {e}")
 
     
 
@@ -1015,23 +1026,23 @@ print(f"Selected RMSE % of mean: {rmse_pct:.2f}%")
 
 if rmse_pct < 5:
 
-    msg = "🎯 Excellent accuracy – ideal for CRM forecasting & target-setting."
+    msg = "Excellent accuracy - ideal for CRM forecasting and target-setting."
 
 elif rmse_pct < 10:
 
-    msg = "✅ Very good accuracy – suitable for precise CRM targets."
+    msg = "Very good accuracy - suitable for precise CRM targets."
 
 elif rmse_pct < 15:
 
-    msg = "✓ Good accuracy – suitable for CRM targets with caution on edge cases."
+    msg = "Good accuracy - suitable for CRM targets with caution on edge cases."
 
 elif rmse_pct < 25:
 
-    msg = "⚠ OK accuracy – usable for high-level planning, not for precise targets."
+    msg = "OK accuracy - usable for high-level planning, not for precise targets."
 
 else:
 
-    msg = "❌ Needs work – forecasting error is high; review model or data."
+    msg = "Needs work - forecasting error is high; review model or data."
 
 
 
@@ -1177,7 +1188,7 @@ for reg in regressors:
 
 forecast_summary.to_csv("prophet_sales_forecast_results.csv", index=False)
 
-print("✓ Saved forecast → prophet_sales_forecast_results.csv\n")
+print("[OK] Saved forecast -> prophet_sales_forecast_results.csv\n")
 
 
 
@@ -1215,7 +1226,7 @@ historical_performance["Percentage_Error"] = (historical_performance["Error"] / 
 
 historical_performance.to_csv("prophet_historical_performance.csv", index=False)
 
-print("✓ Saved historical performance → prophet_historical_performance.csv\n")
+print("[OK] Saved historical performance -> prophet_historical_performance.csv\n")
 
 
 
@@ -1281,7 +1292,7 @@ plt.tight_layout()
 
 plt.savefig("prophet_optimized_forecast.png", dpi=150, bbox_inches='tight')
 
-print("✓ Saved plot → prophet_optimized_forecast.png\n")
+print("[OK] Saved plot -> prophet_optimized_forecast.png\n")
 
 plt.show()
 
@@ -1289,9 +1300,9 @@ plt.show()
 
 print("\n" + "="*60)
 
-print("✓ OPTIMIZED FORECAST COMPLETE")
+print("[OK] OPTIMIZED FORECAST COMPLETE")
 
-print(f"✓ Target RMSE: <10% (Current: {rmse_pct:.2f}%)")
+print(f"[OK] Target RMSE: <10% (Current: {rmse_pct:.2f}%)")
 
 print("="*60)
 
