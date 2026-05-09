@@ -693,12 +693,10 @@ def quick_cv_rmse(m, horizon_days=90, period_days=30, initial_frac=0.6):
         m,
 
         horizon=f"{horizon_days} days",
-
+        parallel=None,
         period=f"{period_days} days",
 
         initial=f"{initial_days} days",
-
-        parallel="processes",
 
     )
 
