@@ -287,71 +287,75 @@ hist_df, forecast_df = load_results()
 if hist_df is None and forecast_df is None:
     st.info("No result files found yet. Click 'Run Forecast' to generate outputs.")
 else:
-    st.subheader("KPI metrics")
-    metric_col1, metric_col2, metric_col3 = st.columns(3)
+    downloads_tab, metrics_tab = st.tabs(["Download CSV", "KPT Metrics & Charts"])
 
-    holdout_rmse, holdout_rmse_pct, holdout_mape = load_holdout_metrics_from_readme()
+    with downloads_tab:
+        st.subheader("Download CSV")
+        dl1, dl2, dl3 = st.columns(3)
+        with dl1:
+            if forecast_df is not None:
+                st.download_button(
+                    label="Download Forecast CSV",
+                    data=csv_bytes(forecast_df),
+                    file_name="prophet_sales_forecast_results.csv",
+                    mime="text/csv",
+                    use_container_width=True,
+                )
+        with dl2:
+            if hist_df is not None:
+                st.download_button(
+                    label="Download Historical CSV",
+                    data=csv_bytes(hist_df),
+                    file_name="prophet_historical_performance.csv",
+                    mime="text/csv",
+                    use_container_width=True,
+                )
+        with dl3:
+            if GENERATED_DATASET_CSV.exists():
+                st.download_button(
+                    label="Download generated dataset",
+                    data=GENERATED_DATASET_CSV.read_bytes(),
+                    file_name="territory_single_prophet_ready.csv",
+                    mime="text/csv",
+                    use_container_width=True,
+                )
 
-    rmse = holdout_rmse
-    rmse_pct = holdout_rmse_pct
-    mape = holdout_mape
+    with metrics_tab:
+        st.subheader("KPI metrics")
+        metric_col1, metric_col2, metric_col3 = st.columns(3)
 
-    if hist_df is not None:
-        if not np.isfinite(rmse):
-            rmse = calculate_rmse(hist_df)
-        if not np.isfinite(rmse_pct):
-            rmse_pct = calculate_rmse_pct(hist_df, rmse)
-        if not np.isfinite(mape):
-            mape = calculate_mape(hist_df)
+        holdout_rmse, holdout_rmse_pct, holdout_mape = load_holdout_metrics_from_readme()
 
-    with metric_col1:
-        st.metric("RMSE", f"{rmse:,.2f}" if np.isfinite(rmse) else "N/A")
-    with metric_col2:
-        st.metric("RMSE%", f"{rmse_pct:,.2f}%" if np.isfinite(rmse_pct) else "N/A")
-    with metric_col3:
-        st.metric("MAPE", f"{mape:,.2f}%" if np.isfinite(mape) else "N/A")
+        rmse = holdout_rmse
+        rmse_pct = holdout_rmse_pct
+        mape = holdout_mape
 
-    left, right = st.columns(2)
-
-    with left:
         if hist_df is not None:
-            draw_historical_chart(hist_df)
-        else:
-            st.warning("Historical results file not found.")
+            if not np.isfinite(rmse):
+                rmse = calculate_rmse(hist_df)
+            if not np.isfinite(rmse_pct):
+                rmse_pct = calculate_rmse_pct(hist_df, rmse)
+            if not np.isfinite(mape):
+                mape = calculate_mape(hist_df)
 
-    with right:
-        if forecast_df is not None:
-            draw_forecast_chart(forecast_df)
-        else:
-            st.warning("Forecast results file not found.")
+        with metric_col1:
+            st.metric("RMSE", f"{rmse:,.2f}" if np.isfinite(rmse) else "N/A")
+        with metric_col2:
+            st.metric("RMSE%", f"{rmse_pct:,.2f}%" if np.isfinite(rmse_pct) else "N/A")
+        with metric_col3:
+            st.metric("MAPE", f"{mape:,.2f}%" if np.isfinite(mape) else "N/A")
 
-    st.subheader("Download CSV")
-    dl1, dl2, dl3 = st.columns(3)
-    with dl1:
-        if forecast_df is not None:
-            st.download_button(
-                label="Download Forecast CSV",
-                data=csv_bytes(forecast_df),
-                file_name="prophet_sales_forecast_results.csv",
-                mime="text/csv",
-                use_container_width=True,
-            )
-    with dl2:
-        if hist_df is not None:
-            st.download_button(
-                label="Download Historical CSV",
-                data=csv_bytes(hist_df),
-                file_name="prophet_historical_performance.csv",
-                mime="text/csv",
-                use_container_width=True,
-            )
-    with dl3:
-        if GENERATED_DATASET_CSV.exists():
-            st.download_button(
-                label="Download generated dataset",
-                data=GENERATED_DATASET_CSV.read_bytes(),
-                file_name="territory_single_prophet_ready.csv",
-                mime="text/csv",
-                use_container_width=True,
-            )
+        left, right = st.columns(2)
+
+        with left:
+            if hist_df is not None:
+                draw_historical_chart(hist_df)
+            else:
+                st.warning("Historical results file not found.")
+
+        with right:
+            if forecast_df is not None:
+                draw_forecast_chart(forecast_df)
+            else:
+                st.warning("Forecast results file not found.")
 
