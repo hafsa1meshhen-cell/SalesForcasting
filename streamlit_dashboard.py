@@ -252,22 +252,45 @@ if "last_run_log" not in st.session_state:
     st.session_state.last_run_log = ""
 if "show_readme" not in st.session_state:
     st.session_state.show_readme = False
+if "result_hist_df" not in st.session_state or "result_forecast_df" not in st.session_state:
+    initial_hist, initial_forecast = load_results()
+    st.session_state.result_hist_df = initial_hist
+    st.session_state.result_forecast_df = initial_forecast
 
 
 st.title("CRM Sales Forecast & Target Dashboard")
 st.markdown("**Dynamic dashboard for running forecast, viewing RMSE and charts, and downloading CSV files**")
 
+status_placeholder = st.empty()
+log_placeholder = st.empty()
+tabs_placeholder = st.empty()
+
 run_clicked = st.button("Run Forecast", type="primary")
 if run_clicked:
+    status_placeholder.info("Clearing previous forecast results...")
+    st.session_state.last_run_ok = False
+    st.session_state.last_run_log = ""
+    st.session_state.show_readme = False
+    st.session_state.result_hist_df = None
+    st.session_state.result_forecast_df = None
+
     with st.spinner("Running forecast script..."):
         ok, log = run_forecast_script()
         st.session_state.last_run_ok = ok
         st.session_state.last_run_log = log
-        st.session_state.show_readme = False
+        if ok:
+            new_hist_df, new_forecast_df = load_results()
+            st.session_state.result_hist_df = new_hist_df
+            st.session_state.result_forecast_df = new_forecast_df
+
+    status_placeholder.empty()
 
 if st.session_state.last_run_log:
-    with st.expander("Run Log", expanded=not st.session_state.last_run_ok):
-        st.text(st.session_state.last_run_log)
+    with log_placeholder.container():
+        with st.expander("Run Log", expanded=not st.session_state.last_run_ok):
+            st.text(st.session_state.last_run_log)
+else:
+    log_placeholder.empty()
 
 if st.session_state.last_run_ok:
     open_readme = st.button("Open Generated README", use_container_width=True)
@@ -282,11 +305,10 @@ if st.session_state.show_readme:
     else:
         st.warning("README.md was not found.")
 
-hist_df, forecast_df = load_results()
+hist_df = st.session_state.result_hist_df
+forecast_df = st.session_state.result_forecast_df
 
-if hist_df is None and forecast_df is None:
-    st.info("No result files found yet. Click 'Run Forecast' to generate outputs.")
-else:
+with tabs_placeholder.container():
     downloads_tab, metrics_tab = st.tabs(["Download CSV", "KPT Metrics & Charts"])
 
     with downloads_tab:
@@ -301,6 +323,8 @@ else:
                     mime="text/csv",
                     use_container_width=True,
                 )
+            else:
+                st.info("No forecast CSV available.")
         with dl2:
             if hist_df is not None:
                 st.download_button(
@@ -310,8 +334,10 @@ else:
                     mime="text/csv",
                     use_container_width=True,
                 )
+            else:
+                st.info("No historical CSV available.")
         with dl3:
-            if GENERATED_DATASET_CSV.exists():
+            if forecast_df is not None and GENERATED_DATASET_CSV.exists():
                 st.download_button(
                     label="Download generated dataset",
                     data=GENERATED_DATASET_CSV.read_bytes(),
@@ -319,43 +345,54 @@ else:
                     mime="text/csv",
                     use_container_width=True,
                 )
+            else:
+                st.info("No generated dataset available.")
 
     with metrics_tab:
         st.subheader("KPI metrics")
-        metric_col1, metric_col2, metric_col3 = st.columns(3)
+        if hist_df is None and forecast_df is None:
+            st.info("No result files found yet. Click 'Run Forecast' to generate outputs.")
+        else:
+            metric_col1, metric_col2, metric_col3 = st.columns(3)
 
-        holdout_rmse, holdout_rmse_pct, holdout_mape = load_holdout_metrics_from_readme()
+            holdout_rmse, holdout_rmse_pct, holdout_mape = load_holdout_metrics_from_readme()
 
-        rmse = holdout_rmse
-        rmse_pct = holdout_rmse_pct
-        mape = holdout_mape
+            rmse = holdout_rmse
+            rmse_pct = holdout_rmse_pct
+            mape = holdout_mape
 
-        if hist_df is not None:
-            if not np.isfinite(rmse):
-                rmse = calculate_rmse(hist_df)
-            if not np.isfinite(rmse_pct):
-                rmse_pct = calculate_rmse_pct(hist_df, rmse)
-            if not np.isfinite(mape):
-                mape = calculate_mape(hist_df)
-
-        with metric_col1:
-            st.metric("RMSE", f"{rmse:,.2f}" if np.isfinite(rmse) else "N/A")
-        with metric_col2:
-            st.metric("RMSE%", f"{rmse_pct:,.2f}%" if np.isfinite(rmse_pct) else "N/A")
-        with metric_col3:
-            st.metric("MAPE", f"{mape:,.2f}%" if np.isfinite(mape) else "N/A")
-
-        left, right = st.columns(2)
-
-        with left:
             if hist_df is not None:
-                draw_historical_chart(hist_df)
-            else:
-                st.warning("Historical results file not found.")
+                if not np.isfinite(rmse):
+                    rmse = calculate_rmse(hist_df)
+                if not np.isfinite(rmse_pct):
+                    rmse_pct = calculate_rmse_pct(hist_df, rmse)
+                if not np.isfinite(mape):
+                    mape = calculate_mape(hist_df)
 
-        with right:
-            if forecast_df is not None:
-                draw_forecast_chart(forecast_df)
-            else:
-                st.warning("Forecast results file not found.")
+            with metric_col1:
+                st.metric("RMSE", f"{rmse:,.2f}" if np.isfinite(rmse) else "N/A")
+            with metric_col2:
+                st.metric("RMSE%", f"{rmse_pct:,.2f}%" if np.isfinite(rmse_pct) else "N/A")
+            with metric_col3:
+                st.metric("MAPE", f"{mape:,.2f}%" if np.isfinite(mape) else "N/A")
+
+            left, right = st.columns(2)
+
+            with left:
+                if hist_df is not None:
+                    draw_historical_chart(hist_df)
+                else:
+                    st.warning("Historical results file not found.")
+
+            with right:
+                if forecast_df is not None:
+                    draw_forecast_chart(forecast_df)
+                else:
+                    st.warning("Forecast results file not found.")
+
+            with st.expander("Forecast Table", expanded=False):
+                if forecast_df is not None:
+                    st.dataframe(forecast_df, use_container_width=True)
+                else:
+                    st.info("No forecast table available.")
 

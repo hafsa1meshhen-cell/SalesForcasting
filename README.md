@@ -4,9 +4,9 @@ An optimized time-series forecasting system using Prophet (Bayesian) with advanc
 
 ## 📊 Performance Metrics
 
-- **Holdout RMSE**: **25,917.76** (**5.66%** of mean sales, Excellent accuracy)
-- **MAPE**: **3.29%** (Very precise)
-- **Best CV RMSE**: **62,406** (**13.62%** of mean sales)
+- **Holdout RMSE**: **32,841.67** (**7.17%** of mean sales, Excellent accuracy)
+- **MAPE**: **4.46%** (Very precise)
+- **Best CV RMSE**: **57,110** (**12.46%** of mean sales)
 - **Model Status**: 🎯 **Production Ready**
 - **Interpretation**: Ideal for CRM forecasting & target-setting
 
@@ -237,7 +237,7 @@ MIT License - Feel free to use, modify, and distribute.
 ### From Original → Optimized
 | Aspect | Original | Optimized |
 |--------|----------|-----------|
-| RMSE | 15.40% | **5.66%** ✅ |
+| RMSE | 15.40% | **7.17%** ✅ |
 | Hyperparameter Grid | 8 combinations | **22 combinations** ✅ |
 | Feature Count | Basic | **5 focused regressors** ✅ |
 | Holdout Period | 6 months | **3 months** (more training) ✅ |
@@ -247,8 +247,20 @@ MIT License - Feel free to use, modify, and distribute.
 
 ---
 
-**Last Updated**: May 09, 2026  
+**Last Updated**: May 16, 2026  
 **Status**: 🎯 Production Ready
+- **5 engineered regressors** (focused set to reduce overfitting)
+- **Cross-validation based selection** on original-scale RMSE
+- **52 months synthetic data** with optimized noise
+- **5 engineered regressors** (focused set to reduce overfitting)
+- **Cross-validation based selection** on original-scale RMSE
+- **52 months synthetic data** with optimized noise
+- **5 engineered regressors** (focused set to reduce overfitting)
+- **Cross-validation based selection** on original-scale RMSE
+- **52 months synthetic data** with optimized noise
+- **5 engineered regressors** (focused set to reduce overfitting)
+- **Cross-validation based selection** on original-scale RMSE
+- **52 months synthetic data** with optimized noise
 - **5 engineered regressors** (focused set to reduce overfitting)
 - **Cross-validation based selection** on original-scale RMSE
 - **52 months synthetic data** with optimized noise
