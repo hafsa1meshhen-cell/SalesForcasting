@@ -275,6 +275,8 @@ target_column = "past_sales"
 
 TARGET_RULE = "function"
 
+FAST_MODE = os.environ.get("FORECAST_FAST_MODE") == "1"
+
 
 def update_readme_metrics(readme_path,
                           holdout_rmse,
@@ -796,6 +798,10 @@ grid = [
 
 print(f"=== HYPERPARAMETER GRID: {len(grid)} combinations ===\n")
 
+if FAST_MODE:
+
+    print("[INFO] FAST_MODE is enabled: skipping CV grid search for quicker dashboard runs.\n")
+
 
 
 # ============================================================
@@ -816,7 +822,13 @@ yhat_base = pred_hist_base["yhat"]  # Already in original scale
 
 rmse_base_orig = float(np.sqrt(np.mean((work["y_raw"] - yhat_base)**2)))
 
-rmse_base_cv = quick_cv_rmse(m_base, horizon_days=90, period_days=30)
+if FAST_MODE:
+
+    rmse_base_cv = rmse_base_orig
+
+else:
+
+    rmse_base_cv = quick_cv_rmse(m_base, horizon_days=90, period_days=30)
 
 
 
@@ -846,63 +858,75 @@ best_rmse_orig = rmse_base_orig
 
 
 
-print("=== GRID SEARCH (CV-based selection, original scale) ===")
+if FAST_MODE:
 
-for i, p in enumerate(grid, 1):
+    best_cv_rmse = rmse_base_cv
 
-    params = {**baseline_params, **p}
+    best_model = m_base
 
-    
+    best_params = baseline_params.copy()
 
-    print(f"Try {i}/{len(grid)}: {p}")
+    best_rmse_orig = rmse_base_orig
 
-    
+else:
 
-    try:
+    print("=== GRID SEARCH (CV-based selection, original scale) ===")
 
-        m_try = fit_prophet(work, regressors, params)
+    for i, p in enumerate(grid, 1):
 
-        cv_rmse_try = quick_cv_rmse(m_try, horizon_days=90, period_days=30)
-
-        
-
-        pred_try = m_try.predict(work[["ds"] + regressors])
-
-        yhat_try = pred_try["yhat"]
-
-        rmse_try_orig = float(np.sqrt(np.mean((work["y_raw"] - yhat_try)**2)))
+        params = {**baseline_params, **p}
 
         
 
-        cv_pct = cv_rmse_try / mean_sales * 100
-
-        is_pct = rmse_try_orig / mean_sales * 100
-
-        print(f"  -> CV RMSE: {cv_rmse_try:,.0f} ({cv_pct:.2f}%), In-sample: {rmse_try_orig:,.0f} ({is_pct:.2f}%)")
+        print(f"Try {i}/{len(grid)}: {p}")
 
         
 
-        if cv_rmse_try < best_cv_rmse:
+        try:
 
-            best_cv_rmse = cv_rmse_try
+            m_try = fit_prophet(work, regressors, params)
 
-            best_model = m_try
+            cv_rmse_try = quick_cv_rmse(m_try, horizon_days=90, period_days=30)
 
-            best_params = params
+            
 
-            best_rmse_orig = rmse_try_orig
+            pred_try = m_try.predict(work[["ds"] + regressors])
 
-            print(f"  [OK] NEW BEST (CV RMSE: {cv_rmse_try:,.0f}, {cv_pct:.2f}%)")
+            yhat_try = pred_try["yhat"]
 
-    
+            rmse_try_orig = float(np.sqrt(np.mean((work["y_raw"] - yhat_try)**2)))
 
-    except Exception as e:
+            
 
-        print(f"  [FAILED]: {e}")
+            cv_pct = cv_rmse_try / mean_sales * 100
 
-    
+            is_pct = rmse_try_orig / mean_sales * 100
 
-    print()
+            print(f"  -> CV RMSE: {cv_rmse_try:,.0f} ({cv_pct:.2f}%), In-sample: {rmse_try_orig:,.0f} ({is_pct:.2f}%)")
+
+            
+
+            if cv_rmse_try < best_cv_rmse:
+
+                best_cv_rmse = cv_rmse_try
+
+                best_model = m_try
+
+                best_params = params
+
+                best_rmse_orig = rmse_try_orig
+
+                print(f"  [OK] NEW BEST (CV RMSE: {cv_rmse_try:,.0f}, {cv_pct:.2f}%)")
+
+        
+
+        except Exception as e:
+
+            print(f"  [FAILED]: {e}")
+
+        
+
+        print()
 
 
 
@@ -1292,7 +1316,13 @@ plt.savefig("prophet_optimized_forecast.png", dpi=150, bbox_inches='tight')
 
 print("[OK] Saved plot -> prophet_optimized_forecast.png\n")
 
-plt.show()
+if os.environ.get("FORECAST_NON_INTERACTIVE") == "1":
+
+    plt.close(fig)
+
+else:
+
+    plt.show()
 
 
 

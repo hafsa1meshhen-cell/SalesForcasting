@@ -1,4 +1,5 @@
 import io
+import os
 import re
 import subprocess
 import sys
@@ -108,10 +109,14 @@ def run_forecast_script() -> tuple[bool, str]:
         return False, f"Missing script: {FORECAST_SCRIPT.name}"
 
     cmd = [sys.executable, str(FORECAST_SCRIPT)]
+    env = os.environ.copy()
+    env["FORECAST_NON_INTERACTIVE"] = "1"
+    env["FORECAST_FAST_MODE"] = "1"
     try:
         completed = subprocess.run(
             cmd,
             cwd=str(BASE_DIR),
+            env=env,
             capture_output=True,
             text=True,
             check=False,

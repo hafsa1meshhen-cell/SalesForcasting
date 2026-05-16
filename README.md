@@ -264,3 +264,6 @@ MIT License - Feel free to use, modify, and distribute.
 - **5 engineered regressors** (focused set to reduce overfitting)
 - **Cross-validation based selection** on original-scale RMSE
 - **52 months synthetic data** with optimized noise
+- **5 engineered regressors** (focused set to reduce overfitting)
+- **Cross-validation based selection** on original-scale RMSE
+- **52 months synthetic data** with optimized noise
