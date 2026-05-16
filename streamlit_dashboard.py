@@ -265,25 +265,34 @@ status_placeholder = st.empty()
 log_placeholder = st.empty()
 tabs_placeholder = st.empty()
 
-run_clicked = st.button("Run Forecast", type="primary")
-if run_clicked:
-    status_placeholder.info("Clearing previous forecast results...")
+action_col1, action_col2 = st.columns([1, 1])
+with action_col1:
+    run_clicked = st.button("Run Forecast", type="primary", use_container_width=True)
+with action_col2:
+    reset_clicked = st.button("Reset Results", use_container_width=True)
+
+if reset_clicked:
     st.session_state.last_run_ok = False
     st.session_state.last_run_log = ""
     st.session_state.show_readme = False
     st.session_state.result_hist_df = None
     st.session_state.result_forecast_df = None
+    status_placeholder.success("Previous forecast results cleared.")
 
+if run_clicked:
+    status_placeholder.info("Running forecast...")
     with st.spinner("Running forecast script..."):
         ok, log = run_forecast_script()
         st.session_state.last_run_ok = ok
         st.session_state.last_run_log = log
+        st.session_state.show_readme = False
         if ok:
             new_hist_df, new_forecast_df = load_results()
             st.session_state.result_hist_df = new_hist_df
             st.session_state.result_forecast_df = new_forecast_df
-
-    status_placeholder.empty()
+            status_placeholder.success("Forecast run completed.")
+        else:
+            status_placeholder.error("Forecast run failed. Check Run Log for details.")
 
 if st.session_state.last_run_log:
     with log_placeholder.container():
