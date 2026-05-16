@@ -129,6 +129,10 @@ def run_forecast_script() -> tuple[bool, str]:
     return True, output.strip()
 
 
+def results_are_available() -> bool:
+    return HISTORICAL_CSV.exists() and FORECAST_CSV.exists()
+
+
 def load_results() -> tuple[pd.DataFrame | None, pd.DataFrame | None]:
     hist_df = pd.read_csv(HISTORICAL_CSV) if HISTORICAL_CSV.exists() else None
     forecast_df = pd.read_csv(FORECAST_CSV) if FORECAST_CSV.exists() else None
@@ -287,14 +291,18 @@ if run_clicked:
     status_placeholder.info("Running forecast...")
     with st.spinner("Running forecast script..."):
         ok, log = run_forecast_script()
-        st.session_state.last_run_ok = ok
+        produced_results = results_are_available()
+        st.session_state.last_run_ok = ok or produced_results
         st.session_state.last_run_log = log
         st.session_state.show_readme = False
-        if ok:
+        if ok or produced_results:
             new_hist_df, new_forecast_df = load_results()
             st.session_state.result_hist_df = new_hist_df
             st.session_state.result_forecast_df = new_forecast_df
-            status_placeholder.success("Forecast run completed.")
+            if ok:
+                status_placeholder.success("Forecast run completed.")
+            else:
+                status_placeholder.warning("Forecast script ended with an error, but result files were generated and loaded.")
         else:
             status_placeholder.error("Forecast run failed. Check Run Log for details.")
 

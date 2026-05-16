@@ -1094,6 +1094,11 @@ print("\nProjecting future regressor values...")
 
 future_rows = []
 
+reg_bounds = {
+    reg: tuple(work[reg].quantile([0.05, 0.95]).values)
+    for reg in regressors
+}
+
 for date in future_dates:
 
     future_row = {"ds": date}
@@ -1112,7 +1117,7 @@ for date in future_dates:
 
         
 
-        lo, hi = work[reg].quantile([0.05, 0.95])
+        lo, hi = reg_bounds[reg]
 
         proj = np.clip(proj, lo, hi)
 
