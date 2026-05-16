@@ -265,11 +265,11 @@ status_placeholder = st.empty()
 log_placeholder = st.empty()
 tabs_placeholder = st.empty()
 
-action_col1, action_col2 = st.columns([1, 1])
+action_col1, action_col2, _ = st.columns([1, 1, 6])
 with action_col1:
-    run_clicked = st.button("Run Forecast", type="primary", use_container_width=True)
+    run_clicked = st.button("Run Forecast", type="primary")
 with action_col2:
-    reset_clicked = st.button("Reset Results", use_container_width=True)
+    reset_clicked = st.button("Reset Results")
 
 if reset_clicked:
     st.session_state.last_run_ok = False
