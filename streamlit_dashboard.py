@@ -111,7 +111,6 @@ def run_forecast_script() -> tuple[bool, str]:
     cmd = [sys.executable, str(FORECAST_SCRIPT)]
     env = os.environ.copy()
     env["FORECAST_NON_INTERACTIVE"] = "1"
-    env["FORECAST_FAST_MODE"] = "1"
     try:
         completed = subprocess.run(
             cmd,
