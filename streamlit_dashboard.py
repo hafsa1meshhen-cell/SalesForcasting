@@ -104,7 +104,7 @@ st.markdown(
 )
 
 
-def run_forecast_script() -> tuple[bool, str]:
+def run_forecast_script(live_line_callback=None) -> tuple[bool, str]:
     if not FORECAST_SCRIPT.exists():
         return False, f"Missing script: {FORECAST_SCRIPT.name}"
 
@@ -112,21 +112,54 @@ def run_forecast_script() -> tuple[bool, str]:
     env = os.environ.copy()
     env["FORECAST_NON_INTERACTIVE"] = "1"
     try:
-        completed = subprocess.run(
+        process = subprocess.Popen(
             cmd,
             cwd=str(BASE_DIR),
             env=env,
-            capture_output=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
             text=True,
-            check=False,
+            bufsize=1,
         )
     except Exception as exc:
         return False, str(exc)
 
-    output = (completed.stdout or "") + "\n" + (completed.stderr or "")
-    if completed.returncode != 0:
+    lines = []
+    if process.stdout is not None:
+        for raw_line in process.stdout:
+            line = raw_line.rstrip("\n")
+            lines.append(line)
+            if live_line_callback is not None:
+                live_line_callback(line)
+
+    return_code = process.wait()
+    output = "\n".join(lines).strip()
+    if return_code != 0:
         return False, output.strip()
     return True, output.strip()
+
+
+def extract_forecasting_progress(log_text: str) -> list[tuple[str, bool]]:
+    if not log_text:
+        return []
+
+    checkpoints = [
+        ("CmdStan check", "CmdStan found at"),
+        ("Generate synthetic CRM data", "GENERATING OPTIMIZED SYNTHETIC CRM DATA"),
+        ("Prepare engineered dataset", "DATA READY (Forecasting ACTUAL sales"),
+        ("Train baseline model", "Training baseline model"),
+        ("Run hyperparameter grid search", "GRID SEARCH (CV-based selection"),
+        ("Select best model", "BEST MODEL SELECTED"),
+        ("Evaluate holdout period", "HOLDOUT EVALUATION"),
+        ("Compute RMSE interpretation", "RMSE INTERPRETATION"),
+        ("Project future regressors", "Projecting future regressor values"),
+        ("Save forecast CSV", "Saved forecast"),
+        ("Save historical CSV", "Saved historical performance"),
+        ("Save forecast plot", "Saved plot"),
+        ("Update README metrics", "Updated README metrics"),
+    ]
+
+    return [(step_name, marker in log_text) for step_name, marker in checkpoints]
 
 
 def results_are_available() -> bool:
@@ -260,6 +293,8 @@ if "last_run_log" not in st.session_state:
     st.session_state.last_run_log = ""
 if "show_readme" not in st.session_state:
     st.session_state.show_readme = False
+if "last_progress_steps" not in st.session_state:
+    st.session_state.last_progress_steps = []
 if "result_hist_df" not in st.session_state or "result_forecast_df" not in st.session_state:
     initial_hist, initial_forecast = load_results()
     st.session_state.result_hist_df = initial_hist
@@ -283,17 +318,26 @@ if reset_clicked:
     st.session_state.last_run_ok = False
     st.session_state.last_run_log = ""
     st.session_state.show_readme = False
+    st.session_state.last_progress_steps = []
     st.session_state.result_hist_df = None
     st.session_state.result_forecast_df = None
     status_placeholder.success("Previous forecast results cleared.")
 
 if run_clicked:
     status_placeholder.info("Running forecast...")
-    with st.spinner("Running forecast script..."):
-        ok, log = run_forecast_script()
+    with st.status("Running forecast script...", expanded=True) as run_status:
+        run_status.write("Starting forecast pipeline...")
+        ok, log = run_forecast_script(live_line_callback=run_status.write)
+        run_status.write("Forecast script finished.")
+        if ok:
+            run_status.update(label="Forecast run completed", state="complete", expanded=False)
+        else:
+            run_status.update(label="Forecast run finished with errors", state="error", expanded=True)
+
         produced_results = results_are_available()
         st.session_state.last_run_ok = ok or produced_results
         st.session_state.last_run_log = log
+        st.session_state.last_progress_steps = extract_forecasting_progress(log)
         st.session_state.show_readme = False
         if ok or produced_results:
             new_hist_df, new_forecast_df = load_results()
@@ -330,7 +374,26 @@ hist_df = st.session_state.result_hist_df
 forecast_df = st.session_state.result_forecast_df
 
 with tabs_placeholder.container():
-    downloads_tab, metrics_tab = st.tabs(["Download CSV", "KPT Metrics & Charts"])
+    progress_tab, downloads_tab, metrics_tab = st.tabs(["Forecasting progress", "Download CSV", "KPT Metrics & Charts"])
+
+    with progress_tab:
+        st.subheader("Forecasting progress")
+        if not st.session_state.last_run_log:
+            st.info("No run logs yet. Click 'Run Forecast' to see the full process.")
+        else:
+            if st.session_state.last_run_ok:
+                st.success("Latest run completed and outputs were loaded.")
+            else:
+                st.error("Latest run did not complete successfully. Review the logs below.")
+
+            progress_steps = st.session_state.last_progress_steps
+            if progress_steps:
+                for step_name, done in progress_steps:
+                    marker = "[x]" if done else "[ ]"
+                    st.write(f"{marker} {step_name}")
+
+            with st.expander("Full forecasting process log", expanded=True):
+                st.text(st.session_state.last_run_log)
 
     with downloads_tab:
         st.subheader("Download CSV")
