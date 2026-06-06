@@ -11,9 +11,11 @@ import pandas as pd
 import streamlit as st
 
 BASE_DIR = Path(__file__).resolve().parent
+OUTPUT_DIR = BASE_DIR / "outputs"
 FORECAST_SCRIPT = BASE_DIR / "forecast_backup.py"
-HISTORICAL_CSV = BASE_DIR / "prophet_historical_performance.csv"
-FORECAST_CSV = BASE_DIR / "prophet_sales_forecast_results.csv"
+FORECAST_CSV = OUTPUT_DIR / "prophet_sales_forecast_results.csv"
+HISTORICAL_CSV = OUTPUT_DIR / "prophet_historical_performance.csv"
+CHART_FILE = OUTPUT_DIR / "prophet_optimized_forecast.png"
 GENERATED_DATASET_CSV = BASE_DIR / "territory_single_prophet_ready.csv"
 README_PATH = BASE_DIR / "README.md"
 
@@ -104,39 +106,37 @@ st.markdown(
 )
 
 
-def run_forecast_script(live_line_callback=None) -> tuple[bool, str]:
+def run_forecast_script() -> tuple[bool, str, str, str]:
     if not FORECAST_SCRIPT.exists():
-        return False, f"Missing script: {FORECAST_SCRIPT.name}"
+        return False, "", "", f"Missing script: {FORECAST_SCRIPT.name}"
 
     cmd = [sys.executable, str(FORECAST_SCRIPT)]
     env = os.environ.copy()
     env["FORECAST_NON_INTERACTIVE"] = "1"
     try:
-        process = subprocess.Popen(
+        completed = subprocess.run(
             cmd,
             cwd=str(BASE_DIR),
             env=env,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
+            capture_output=True,
             text=True,
-            bufsize=1,
+            check=False,
         )
     except Exception as exc:
-        return False, str(exc)
+        return False, "", "", str(exc)
 
-    lines = []
-    if process.stdout is not None:
-        for raw_line in process.stdout:
-            line = raw_line.rstrip("\n")
-            lines.append(line)
-            if live_line_callback is not None:
-                live_line_callback(line)
+    stdout_text = (completed.stdout or "").strip()
+    stderr_text = (completed.stderr or "").strip()
+    combined_log = "\n".join(
+        part for part in [
+            "=== STDOUT ===",
+            stdout_text,
+            "=== STDERR ===",
+            stderr_text,
+        ] if part
+    ).strip()
 
-    return_code = process.wait()
-    output = "\n".join(lines).strip()
-    if return_code != 0:
-        return False, output.strip()
-    return True, output.strip()
+    return completed.returncode == 0, stdout_text, stderr_text, combined_log
 
 
 def extract_forecasting_progress(log_text: str) -> list[tuple[str, bool]]:
@@ -162,8 +162,13 @@ def extract_forecasting_progress(log_text: str) -> list[tuple[str, bool]]:
     return [(step_name, marker in log_text) for step_name, marker in checkpoints]
 
 
+def get_missing_output_files() -> list[Path]:
+    expected_files = [FORECAST_CSV, HISTORICAL_CSV, CHART_FILE]
+    return [path for path in expected_files if not path.exists()]
+
+
 def results_are_available() -> bool:
-    return HISTORICAL_CSV.exists() and FORECAST_CSV.exists()
+    return len(get_missing_output_files()) == 0
 
 
 def load_results() -> tuple[pd.DataFrame | None, pd.DataFrame | None]:
@@ -295,6 +300,10 @@ if "show_readme" not in st.session_state:
     st.session_state.show_readme = False
 if "last_progress_steps" not in st.session_state:
     st.session_state.last_progress_steps = []
+if "run_completed" not in st.session_state:
+    st.session_state.run_completed = False
+if "missing_output_files" not in st.session_state:
+    st.session_state.missing_output_files = []
 if "result_hist_df" not in st.session_state or "result_forecast_df" not in st.session_state:
     initial_hist, initial_forecast = load_results()
     st.session_state.result_hist_df = initial_hist
@@ -319,6 +328,8 @@ if reset_clicked:
     st.session_state.last_run_log = ""
     st.session_state.show_readme = False
     st.session_state.last_progress_steps = []
+    st.session_state.run_completed = False
+    st.session_state.missing_output_files = []
     st.session_state.result_hist_df = None
     st.session_state.result_forecast_df = None
     status_placeholder.success("Previous forecast results cleared.")
@@ -327,28 +338,46 @@ if run_clicked:
     status_placeholder.info("Running forecast...")
     with st.status("Running forecast script...", expanded=True) as run_status:
         run_status.write("Starting forecast pipeline...")
-        ok, log = run_forecast_script(live_line_callback=run_status.write)
+        ok, stdout_text, stderr_text, combined_log = run_forecast_script()
         run_status.write("Forecast script finished.")
-        if ok:
-            run_status.update(label="Forecast run completed", state="complete", expanded=False)
-        else:
-            run_status.update(label="Forecast run finished with errors", state="error", expanded=True)
 
-        produced_results = results_are_available()
-        st.session_state.last_run_ok = ok or produced_results
-        st.session_state.last_run_log = log
-        st.session_state.last_progress_steps = extract_forecasting_progress(log)
+        st.session_state.run_completed = True
         st.session_state.show_readme = False
-        if ok or produced_results:
-            new_hist_df, new_forecast_df = load_results()
-            st.session_state.result_hist_df = new_hist_df
-            st.session_state.result_forecast_df = new_forecast_df
-            if ok:
-                status_placeholder.success("Forecast run completed.")
+        st.session_state.last_run_log = combined_log
+        st.session_state.last_progress_steps = extract_forecasting_progress(combined_log)
+
+        if ok:
+            missing_files = get_missing_output_files()
+            st.session_state.missing_output_files = [str(path) for path in missing_files]
+            if not missing_files:
+                new_hist_df, new_forecast_df = load_results()
+                st.session_state.result_hist_df = new_hist_df
+                st.session_state.result_forecast_df = new_forecast_df
+                st.session_state.last_run_ok = True
+                status_placeholder.success(f"Forecast run completed. Outputs saved in: {OUTPUT_DIR}")
+                run_status.update(label="Forecast run completed", state="complete", expanded=False)
             else:
-                status_placeholder.warning("Forecast script ended with an error, but result files were generated and loaded.")
+                st.session_state.last_run_ok = False
+                st.session_state.result_hist_df = None
+                st.session_state.result_forecast_df = None
+                missing_text = "\n".join(str(path) for path in missing_files)
+                status_placeholder.error(
+                    "Forecast finished but required output files are missing:\n" + missing_text
+                )
+                run_status.update(label="Forecast run completed with missing output files", state="error", expanded=True)
         else:
-            status_placeholder.error("Forecast run failed. Check Run Log for details.")
+            st.session_state.last_run_ok = False
+            st.session_state.result_hist_df = None
+            st.session_state.result_forecast_df = None
+            st.session_state.missing_output_files = []
+            status_placeholder.error("Forecast script failed. See stdout/stderr in the Run Log.")
+            run_status.update(label="Forecast run failed", state="error", expanded=True)
+            if stdout_text:
+                run_status.write("STDOUT:")
+                run_status.code(stdout_text)
+            if stderr_text:
+                run_status.write("STDERR:")
+                run_status.code(stderr_text)
 
 if st.session_state.last_run_log:
     with log_placeholder.container():
@@ -385,6 +414,10 @@ with tabs_placeholder.container():
                 st.success("Latest run completed and outputs were loaded.")
             else:
                 st.error("Latest run did not complete successfully. Review the logs below.")
+                if st.session_state.missing_output_files:
+                    st.error(
+                        "Missing required output files:\n" + "\n".join(st.session_state.missing_output_files)
+                    )
 
             progress_steps = st.session_state.last_progress_steps
             if progress_steps:
@@ -435,7 +468,16 @@ with tabs_placeholder.container():
     with metrics_tab:
         st.subheader("KPI metrics")
         if hist_df is None and forecast_df is None:
-            st.info("No result files found yet. Click 'Run Forecast' to generate outputs.")
+            if st.session_state.run_completed:
+                if st.session_state.missing_output_files:
+                    st.error(
+                        "Forecast process completed, but result files are missing in outputs/:\n"
+                        + "\n".join(st.session_state.missing_output_files)
+                    )
+                else:
+                    st.error("Forecast process completed, but result files could not be loaded from outputs/.")
+            else:
+                st.info("Click 'Run Forecast' to generate outputs.")
         else:
             metric_col1, metric_col2, metric_col3 = st.columns(3)
 

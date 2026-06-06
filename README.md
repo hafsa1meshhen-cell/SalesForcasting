@@ -4,9 +4,9 @@ An optimized time-series forecasting system using Prophet (Bayesian) with advanc
 
 ## 📊 Performance Metrics
 
-- **Holdout RMSE**: **32,841.67** (**7.17%** of mean sales, Excellent accuracy)
-- **MAPE**: **4.46%** (Very precise)
-- **Best CV RMSE**: **57,110** (**12.46%** of mean sales)
+- **Holdout RMSE**: **30,271.66** (**6.58%** of mean sales, Excellent accuracy)
+- **MAPE**: **4.91%** (Very precise)
+- **Best CV RMSE**: **55,800** (**12.13%** of mean sales)
 - **Model Status**: 🎯 **Production Ready**
 - **Interpretation**: Ideal for CRM forecasting & target-setting
 
@@ -58,7 +58,7 @@ python forecast_backup.py
 ```
 **Output Files:**
 - `prophet_sales_forecast_results.csv` - 12-month forecast
-- `prophet_historical_performance.csv` - 52-month historical performance
+- `prophet_historical_performance.csv` - 53-month historical performance
 - `prophet_optimized_forecast.png` - Visualization
 - `territory_single_prophet_ready.csv` - Synthetic training data
 
@@ -78,7 +78,7 @@ SalesForcasting/
 ├── requirements.txt                # Python dependencies
 ├── README.md                       # This file
 ├── prophet_sales_forecast_results.csv       # Generated forecast (12 months)
-├── prophet_historical_performance.csv       # Generated historical data (52 months)
+├── prophet_historical_performance.csv       # Generated historical data (53 months)
 ├── prophet_optimized_forecast.png           # Generated visualization
 └── territory_single_prophet_ready.csv       # Synthetic training data
 ```
@@ -114,7 +114,7 @@ Where: uplift = 1.05 + 0.40×close_rate + 0.25×territory_potential
 |-----|---------|
 | **Overview** | Key metrics, model status, recommendations |
 | **Forecast** | 12-month projection with confidence bands |
-| **Historical** | 52-month actual vs predicted analysis |
+| **Historical** | 53-month actual vs predicted analysis |
 | **Data** | Interactive data explorer with downloads |
 | **Settings** | Model config, performance summary, resources |
 
@@ -132,14 +132,14 @@ MISTRAL_API_KEY = "your_key_here"        # Add your API key
 ## 📈 Data Specifications
 
 ### Synthetic Data Generation
-- **Time Period**: 52 months (2022-01 to 2026-04)
+- **Time Period**: 53 months (2022-01 to 2026-05)
 - **Trend**: +5% annual growth
 - **Seasonality**: 8% amplitude with monthly cycles
 - **Noise**: ±8-12% random variation
 - **Regressors**: 5 focused features
 
 ### Train/Test Split
-- **Training**: 49 months
+- **Training**: 50 months
 - **Holdout Test**: 3 months
 - **Cross-Validation**: 90-day horizon, 30-day period
 
@@ -237,7 +237,7 @@ MIT License - Feel free to use, modify, and distribute.
 ### From Original → Optimized
 | Aspect | Original | Optimized |
 |--------|----------|-----------|
-| RMSE | 15.40% | **7.17%** ✅ |
+| RMSE | 15.40% | **6.58%** ✅ |
 | Hyperparameter Grid | 8 combinations | **22 combinations** ✅ |
 | Feature Count | Basic | **5 focused regressors** ✅ |
 | Holdout Period | 6 months | **3 months** (more training) ✅ |
@@ -247,7 +247,7 @@ MIT License - Feel free to use, modify, and distribute.
 
 ---
 
-**Last Updated**: May 17, 2026  
+**Last Updated**: June 06, 2026  
 **Status**: 🎯 Production Ready
 - **5 engineered regressors** (focused set to reduce overfitting)
 - **Cross-validation based selection** on original-scale RMSE
@@ -306,3 +306,42 @@ MIT License - Feel free to use, modify, and distribute.
 - **5 engineered regressors** (focused set to reduce overfitting)
 - **Cross-validation based selection** on original-scale RMSE
 - **52 months synthetic data** with optimized noise
+- **5 engineered regressors** (focused set to reduce overfitting)
+- **Cross-validation based selection** on original-scale RMSE
+- **52 months synthetic data** with optimized noise
+- **5 engineered regressors** (focused set to reduce overfitting)
+- **Cross-validation based selection** on original-scale RMSE
+- **52 months synthetic data** with optimized noise
+- **5 engineered regressors** (focused set to reduce overfitting)
+- **Cross-validation based selection** on original-scale RMSE
+- **52 months synthetic data** with optimized noise
+- **5 engineered regressors** (focused set to reduce overfitting)
+- **Cross-validation based selection** on original-scale RMSE
+- **52 months synthetic data** with optimized noise
+- **5 engineered regressors** (focused set to reduce overfitting)
+- **Cross-validation based selection** on original-scale RMSE
+- **52 months synthetic data** with optimized noise
+- **5 engineered regressors** (focused set to reduce overfitting)
+- **Cross-validation based selection** on original-scale RMSE
+- **52 months synthetic data** with optimized noise
+- **5 engineered regressors** (focused set to reduce overfitting)
+- **Cross-validation based selection** on original-scale RMSE
+- **52 months synthetic data** with optimized noise
+- **5 engineered regressors** (focused set to reduce overfitting)
+- **Cross-validation based selection** on original-scale RMSE
+- **52 months synthetic data** with optimized noise
+- **5 engineered regressors** (focused set to reduce overfitting)
+- **Cross-validation based selection** on original-scale RMSE
+- **52 months synthetic data** with optimized noise
+- **5 engineered regressors** (focused set to reduce overfitting)
+- **Cross-validation based selection** on original-scale RMSE
+- **53 months synthetic data** with optimized noise
+- **5 engineered regressors** (focused set to reduce overfitting)
+- **Cross-validation based selection** on original-scale RMSE
+- **53 months synthetic data** with optimized noise
+- **5 engineered regressors** (focused set to reduce overfitting)
+- **Cross-validation based selection** on original-scale RMSE
+- **53 months synthetic data** with optimized noise
+- **5 engineered regressors** (focused set to reduce overfitting)
+- **Cross-validation based selection** on original-scale RMSE
+- **53 months synthetic data** with optimized noise
