@@ -3,6 +3,9 @@ import os
 import re
 import subprocess
 import sys
+import threading
+import time
+from queue import Empty, Queue
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -106,27 +109,71 @@ st.markdown(
 )
 
 
-def run_forecast_script() -> tuple[bool, str, str, str]:
+def run_forecast_script(live_log_placeholder=None) -> tuple[bool, str, str, str]:
     if not FORECAST_SCRIPT.exists():
         return False, "", "", f"Missing script: {FORECAST_SCRIPT.name}"
 
     cmd = [sys.executable, str(FORECAST_SCRIPT)]
     env = os.environ.copy()
     env["FORECAST_NON_INTERACTIVE"] = "1"
+
     try:
-        completed = subprocess.run(
+        process = subprocess.Popen(
             cmd,
             cwd=str(BASE_DIR),
             env=env,
-            capture_output=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
             text=True,
-            check=False,
+            bufsize=1,
         )
     except Exception as exc:
         return False, "", "", str(exc)
 
-    stdout_text = (completed.stdout or "").strip()
-    stderr_text = (completed.stderr or "").strip()
+    stdout_lines: list[str] = []
+    stderr_lines: list[str] = []
+    rendered_lines: list[str] = []
+    line_queue: Queue[tuple[str, str]] = Queue()
+
+    def pump_stream(stream, source: str) -> None:
+        try:
+            for line in iter(stream.readline, ""):
+                line_queue.put((source, line.rstrip("\n")))
+        finally:
+            stream.close()
+
+    stdout_thread = threading.Thread(target=pump_stream, args=(process.stdout, "stdout"), daemon=True)
+    stderr_thread = threading.Thread(target=pump_stream, args=(process.stderr, "stderr"), daemon=True)
+    stdout_thread.start()
+    stderr_thread.start()
+
+    while True:
+        flushed_any = False
+
+        try:
+            while True:
+                source, line = line_queue.get_nowait()
+                flushed_any = True
+                if source == "stdout":
+                    stdout_lines.append(line)
+                else:
+                    stderr_lines.append(line)
+                rendered_lines.append(f"[{source.upper()}] {line}")
+        except Empty:
+            pass
+
+        if live_log_placeholder is not None and flushed_any:
+            live_log_placeholder.code("\n".join(rendered_lines[-300:]), language="text")
+
+        if process.poll() is not None and not stdout_thread.is_alive() and not stderr_thread.is_alive() and line_queue.empty():
+            break
+
+        time.sleep(0.05)
+
+    return_code = process.wait()
+    stdout_text = "\n".join(stdout_lines).strip()
+    stderr_text = "\n".join(stderr_lines).strip()
+
     combined_log = "\n".join(
         part for part in [
             "=== STDOUT ===",
@@ -136,7 +183,10 @@ def run_forecast_script() -> tuple[bool, str, str, str]:
         ] if part
     ).strip()
 
-    return completed.returncode == 0, stdout_text, stderr_text, combined_log
+    if live_log_placeholder is not None and rendered_lines:
+        live_log_placeholder.code("\n".join(rendered_lines[-300:]), language="text")
+
+    return return_code == 0, stdout_text, stderr_text, combined_log
 
 
 def extract_forecasting_progress(log_text: str) -> list[tuple[str, bool]]:
@@ -311,7 +361,7 @@ if "result_hist_df" not in st.session_state or "result_forecast_df" not in st.se
 
 
 st.title("CRM Sales Forecast & Target Dashboard")
-st.markdown("**Dynamic dashboard for running forecast, viewing RMSE and charts, and downloading CSV files**")
+st.markdown("**AI-Powered End-to-End CRM Sales Forecasting Dashboard with Automated Model Optimization, Sales Predictions, Performance Analytics, KPI Tracking, Target Planning, and Downloadable Business Insights**")
 
 status_placeholder = st.empty()
 log_placeholder = st.empty()
@@ -338,7 +388,8 @@ if run_clicked:
     status_placeholder.info("Running forecast...")
     with st.status("Running forecast script...", expanded=True) as run_status:
         run_status.write("Starting forecast pipeline...")
-        ok, stdout_text, stderr_text, combined_log = run_forecast_script()
+        live_stream_placeholder = st.empty()
+        ok, stdout_text, stderr_text, combined_log = run_forecast_script(live_stream_placeholder)
         run_status.write("Forecast script finished.")
 
         st.session_state.run_completed = True

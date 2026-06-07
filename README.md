@@ -247,7 +247,7 @@ MIT License - Feel free to use, modify, and distribute.
 
 ---
 
-**Last Updated**: June 06, 2026  
+**Last Updated**: June 07, 2026  
 **Status**: 🎯 Production Ready
 - **5 engineered regressors** (focused set to reduce overfitting)
 - **Cross-validation based selection** on original-scale RMSE
@@ -333,6 +333,18 @@ MIT License - Feel free to use, modify, and distribute.
 - **5 engineered regressors** (focused set to reduce overfitting)
 - **Cross-validation based selection** on original-scale RMSE
 - **52 months synthetic data** with optimized noise
+- **5 engineered regressors** (focused set to reduce overfitting)
+- **Cross-validation based selection** on original-scale RMSE
+- **53 months synthetic data** with optimized noise
+- **5 engineered regressors** (focused set to reduce overfitting)
+- **Cross-validation based selection** on original-scale RMSE
+- **53 months synthetic data** with optimized noise
+- **5 engineered regressors** (focused set to reduce overfitting)
+- **Cross-validation based selection** on original-scale RMSE
+- **53 months synthetic data** with optimized noise
+- **5 engineered regressors** (focused set to reduce overfitting)
+- **Cross-validation based selection** on original-scale RMSE
+- **53 months synthetic data** with optimized noise
 - **5 engineered regressors** (focused set to reduce overfitting)
 - **Cross-validation based selection** on original-scale RMSE
 - **53 months synthetic data** with optimized noise
