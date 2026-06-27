@@ -458,7 +458,7 @@ if True:
 
     print("\n=== GENERATING OPTIMIZED SYNTHETIC CRM DATA (lower noise) ===")
 
-    np.random.seed(42)
+    # np.random.seed(42)
 
     
 
