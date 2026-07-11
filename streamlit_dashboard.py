@@ -354,10 +354,11 @@ if "run_completed" not in st.session_state:
     st.session_state.run_completed = False
 if "missing_output_files" not in st.session_state:
     st.session_state.missing_output_files = []
-if "result_hist_df" not in st.session_state or "result_forecast_df" not in st.session_state:
-    initial_hist, initial_forecast = load_results()
-    st.session_state.result_hist_df = initial_hist
-    st.session_state.result_forecast_df = initial_forecast
+if "result_hist_df" not in st.session_state:
+    st.session_state.result_hist_df = None
+
+if "result_forecast_df" not in st.session_state:
+    st.session_state.result_forecast_df = None
 
 
 st.title("CRM Sales Forecast & Target Dashboard")

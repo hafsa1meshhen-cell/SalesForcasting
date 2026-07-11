@@ -4,9 +4,9 @@ An optimized time-series forecasting system using Prophet (Bayesian) with advanc
 
 ## 📊 Performance Metrics
 
-- **Holdout RMSE**: **18,839.88** (**4.09%** of mean sales, Excellent accuracy)
-- **MAPE**: **3.29%** (Very precise)
-- **Best CV RMSE**: **31,914** (**6.93%** of mean sales)
+- **Holdout RMSE**: **14,833.58** (**3.21%** of mean sales, Excellent accuracy)
+- **MAPE**: **2.33%** (Very precise)
+- **Best CV RMSE**: **42,929** (**9.29%** of mean sales)
 - **Model Status**: 🎯 **Production Ready**
 - **Interpretation**: Ideal for CRM forecasting & target-setting
 
@@ -225,7 +225,7 @@ MIT License - Feel free to use, modify, and distribute.
 ### From Original → Optimized
 | Aspect | Original | Optimized |
 |--------|----------|-----------|
-| RMSE | 15.40% | **4.09%** ✅ |
+| RMSE | 15.40% | **3.21%** ✅ |
 | Hyperparameter Grid | 8 combinations | **22 combinations** ✅ |
 | Feature Count | Basic | **5 focused regressors** ✅ |
 | Holdout Period | 6 months | **3 months** (more training) ✅ |
@@ -390,6 +390,9 @@ MIT License - Feel free to use, modify, and distribute.
 - **5 engineered regressors** (focused set to reduce overfitting)
 - **Cross-validation based selection** on original-scale RMSE
 - **53 months synthetic data** with optimized noise
+- **5 engineered regressors** (focused set to reduce overfitting)
+- **Cross-validation based selection** on original-scale RMSE
+- **54 months synthetic data** with optimized noise
 - **5 engineered regressors** (focused set to reduce overfitting)
 - **Cross-validation based selection** on original-scale RMSE
 - **54 months synthetic data** with optimized noise
