@@ -342,20 +342,8 @@ def load_holdout_metrics_from_readme() -> tuple[float, float, float]:
     return rmse, rmse_pct, mape
 
 
-def initialize_results_state() -> tuple[pd.DataFrame | None, pd.DataFrame | None]:
-    if not results_are_available():
-        return None, None
-
-    hist_df, forecast_df = load_results()
-    if hist_df is None or forecast_df is None:
-        return None, None
-
-    return hist_df, forecast_df
-
-
 if "last_run_ok" not in st.session_state:
-    initial_hist_df, initial_forecast_df = initialize_results_state()
-    st.session_state.last_run_ok = initial_hist_df is not None and initial_forecast_df is not None
+    st.session_state.last_run_ok = False
 if "last_run_log" not in st.session_state:
     st.session_state.last_run_log = ""
 if "show_readme" not in st.session_state:
@@ -363,14 +351,14 @@ if "show_readme" not in st.session_state:
 if "last_progress_steps" not in st.session_state:
     st.session_state.last_progress_steps = []
 if "run_completed" not in st.session_state:
-    st.session_state.run_completed = st.session_state.last_run_ok
+    st.session_state.run_completed = False
 if "missing_output_files" not in st.session_state:
-    st.session_state.missing_output_files = [str(path) for path in get_missing_output_files()]
+    st.session_state.missing_output_files = []
 if "result_hist_df" not in st.session_state:
-    st.session_state.result_hist_df = initial_hist_df if "initial_hist_df" in locals() else None
+    st.session_state.result_hist_df = None
 
 if "result_forecast_df" not in st.session_state:
-    st.session_state.result_forecast_df = initial_forecast_df if "initial_forecast_df" in locals() else None
+    st.session_state.result_forecast_df = None
 
 
 st.title("CRM Sales Forecast & Target Dashboard")
